@@ -1,5 +1,6 @@
 defmodule Velora.Tenancy.Tenant do
   use Ecto.Schema
+  import Ecto.Changeset
   @moduledoc false
 
   @primary_key {:id, :binary_id, autogenerate: true}
@@ -11,5 +12,11 @@ defmodule Velora.Tenancy.Tenant do
     has_many :memberships, Velora.Tenancy.Membership
 
     timestamps()
+  end
+
+  def changeset(tenant, attrs) do
+    tenant
+    |> cast(attrs, [:name, :slug])
+    |> validate_required([:name, :slug])
   end
 end

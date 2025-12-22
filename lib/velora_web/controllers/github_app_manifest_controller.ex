@@ -8,10 +8,9 @@ defmodule VeloraWeb.GithubAppManifestController do
     state = params["state"] || random_state()
     org = params["org"]
 
-    overrides = get_session(conn, :github_manifest_overrides) || %{}
     conn = put_session(conn, :github_manifest_state, state)
     action_url = AppManifest.install_url(state, org)
-    manifest_json = AppManifest.manifest_json(overrides)
+    manifest_json = AppManifest.manifest_json()
     html = AppManifest.form_html(action_url, manifest_json)
 
     conn
@@ -30,10 +29,7 @@ defmodule VeloraWeb.GithubAppManifestController do
         |> json(%{"error" => "invalid_state"})
 
       true ->
-        conn =
-          conn
-          |> delete_session(:github_manifest_state)
-          |> delete_session(:github_manifest_overrides)
+        conn = delete_session(conn, :github_manifest_state)
 
         case Client.exchange_manifest(code) do
           {:ok, payload} ->

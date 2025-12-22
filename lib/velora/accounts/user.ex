@@ -1,6 +1,7 @@
 defmodule Velora.Accounts.User do
   use Ecto.Schema
   import Ecto.Changeset
+
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
   schema "users" do
@@ -10,7 +11,8 @@ defmodule Velora.Accounts.User do
     field :current_password, :string, virtual: true, redact: true
     field :confirmed_at, :naive_datetime
 
-    has_many :tenants, through: [:tenant_memberships, :tenant]
+    has_many :memberships, Velora.Tenancy.Membership
+    has_many :tenants, through: [:memberships, :tenant]
 
     timestamps()
   end
