@@ -13,6 +13,10 @@ defmodule Velora.Tenancy do
     |> Repo.insert()
   end
 
+  def tenant_changeset(tenant, attrs \\ %{}) do
+    Velora.Tenancy.Tenant.changeset(tenant, attrs)
+  end
+
   @doc """
   Creates a tenant with an owner.
   """
@@ -60,6 +64,11 @@ defmodule Velora.Tenancy do
     %Velora.Tenancy.Invitation{}
     |> Velora.Tenancy.Invitation.changeset(attrs)
     |> Repo.insert()
+  end
+
+  def user_has_membership?(user_id) do
+    from(m in Membership, where: [user_id: ^user_id])
+    |> Repo.exists?()
   end
 
   defp maybe_order(query, %{order_by: order_by}) do

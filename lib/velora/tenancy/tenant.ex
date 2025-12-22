@@ -17,6 +17,7 @@ defmodule Velora.Tenancy.Tenant do
   def changeset(tenant, attrs) do
     tenant
     |> cast(attrs, [:name, :slug])
+    |> validate_length(:name, min: 3, max: 100)
     |> validate_required([:name, :slug])
   end
 end

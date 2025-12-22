@@ -6,6 +6,8 @@ defmodule VeloraWeb.UserAuth do
 
   alias Velora.Accounts
 
+  require Logger
+
   # Make the remember me cookie valid for 60 days.
   # If you want bump or reduce this value, also change
   # the token expiry itself in UserToken.
@@ -28,12 +30,24 @@ defmodule VeloraWeb.UserAuth do
   def log_in_user(conn, user, params \\ %{}) do
     token = Accounts.generate_user_session_token(user)
     user_return_to = get_session(conn, :user_return_to)
+    has_membership = Velora.Tenancy.user_has_membership?(user.id)
 
-    conn
-    |> renew_session()
-    |> put_token_in_session(token)
-    |> maybe_write_remember_me_cookie(token, params)
-    |> redirect(to: user_return_to || signed_in_path(conn))
+    Logger.info("has_membership: #{has_membership}")
+
+    conn =
+      conn
+      |> renew_session()
+      |> put_token_in_session(token)
+      |> maybe_write_remember_me_cookie(token, params)
+
+    IO.inspect(has_membership)
+
+    if !has_membership do
+      Logger.info("redirecting to tenant onboarding")
+      redirect(conn, to: ~p"/tenant/new")
+    else
+      redirect(conn, to: user_return_to || signed_in_path(conn))
+    end
   end
 
   defp maybe_write_remember_me_cookie(conn, token, %{"remember_me" => "true"}) do

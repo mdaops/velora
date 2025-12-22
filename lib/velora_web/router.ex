@@ -74,6 +74,7 @@ defmodule VeloraWeb.Router do
 
     live_session :require_authenticated_user,
       on_mount: [{VeloraWeb.UserAuth, :ensure_authenticated}] do
+      live "/tenant/new", TenantOnboardLive, :new
       live "/users/settings", UserSettingsLive, :edit
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
     end
