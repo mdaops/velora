@@ -13,6 +13,23 @@ defmodule Velora.Tenancy do
     |> Repo.insert()
   end
 
+  def create_tenant_with_owner(%Velora.Accounts.User{id: user_id}, attrs) do
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(
+      :tenant,
+      Velora.Tenancy.Tenant.changeset(%Velora.Tenancy.Tenant{}, attrs)
+    )
+    |> Ecto.Multi.insert(
+      :membership
+      fn %{tenant: tenant} ->
+        Velora.Tenancy.Membership.owner_changeset(%Velora.Tenancy.Membership{}, %{
+          tenant_id: tenant.id,
+          user_id: user.id,
+        })
+      end
+    ) |> Repo.transaction()
+  end
+
   def list_tenants(user_id, opts \\ []) do
     get_tenant_memberships_query_by_user(user_id)
     |> maybe_order(opts)
