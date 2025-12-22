@@ -13,6 +13,11 @@ defmodule Velora.Tenancy do
     |> Repo.insert()
   end
 
+  @doc """
+  Creates a tenant with an owner.
+  """
+  @spec create_tenant_with_owner(Velora.Accounts.User.t(), map()) ::
+          {:ok, Velora.Tenancy.Tenant.t()} | {:error, Ecto.Changeset.t()}
   def create_tenant_with_owner(%Velora.Accounts.User{id: user_id}, attrs) do
     Ecto.Multi.new()
     |> Ecto.Multi.insert(
@@ -20,20 +25,30 @@ defmodule Velora.Tenancy do
       Velora.Tenancy.Tenant.changeset(%Velora.Tenancy.Tenant{}, attrs)
     )
     |> Ecto.Multi.insert(
-      :membership
+      :membership,
       fn %{tenant: tenant} ->
         Velora.Tenancy.Membership.owner_changeset(%Velora.Tenancy.Membership{}, %{
           tenant_id: tenant.id,
-          user_id: user.id,
+          user_id: user_id
         })
       end
-    ) |> Repo.transaction()
+    )
+    |> Repo.transaction()
   end
 
+  @doc """
+  Lists tenant memberships for a given user.
+  """
   def list_tenants(user_id, opts \\ []) do
     get_tenant_memberships_query_by_user(user_id)
     |> maybe_order(opts)
     |> Repo.all()
+  end
+
+  def list_memberships_by_tenant(tenant_id, opts \\ []) do
+    q = from m in Membership, where: [tenant_id: ^tenant_id]
+    q = if preload = opts[:preload], do: preload(q, ^preload), else: q
+    q |> maybe_order(opts) |> Repo.all()
   end
 
   def invite_user(%Velora.Accounts.User{id: invited_by}, tenant, attrs \\ %{}) do
