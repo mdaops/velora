@@ -18,6 +18,7 @@ defmodule VeloraWeb.TenantOnboardLive do
           phx-change="validate"
         >
           <.input field={@tenant_form[:name]} label="Name" required />
+          <.input field={@tenant_form[:slug]} label="Slug" required />
           <:actions>
             <.button phx-disable-with="creating...">Create Tenant</.button>
           </:actions>
@@ -28,11 +29,11 @@ defmodule VeloraWeb.TenantOnboardLive do
   end
 
   def mount(_params, _session, socket) do
-    changeset = Velora.Tenancy.tenant_changeset(%Velora.Tenancy.Tenant{})
+    # changeset = Velora.Tenancy.tenant_changeset(%Velora.Tenancy.Tenant{})
 
     socket =
       socket
-      |> assign(:tenant_form, to_form(changeset, as: "tenant"))
+      |> assign(:tenant_form, to_form(%{}, as: "tenant"))
       |> assign(:trigger_submit, false)
 
     {:ok, socket}
@@ -41,16 +42,16 @@ defmodule VeloraWeb.TenantOnboardLive do
   def handle_event("create", params, socket) do
     IO.inspect("fuck fuck")
     %{"tenant" => tenant_params} = params
-    tenant_params = Map.put(tenant_params, "slug", tenant_params["name"])
+
+    IO.inspect("tenant_params create #{inspect(tenant_params)}")
     user = socket.assigns.current_user
-    changeset = Velora.Tenancy.tenant_changeset(%Velora.Tenancy.Tenant{})
 
     case Velora.Tenancy.create_tenant_with_owner(user, tenant_params) do
       {:ok, _} ->
         {:noreply,
          socket
          |> put_flash(:info, "Tenant created successfully.")
-         |> assign(:tenant_form, changeset)}
+         |> redirect(to: ~p"/dashboard")}
 
       {:error, step, changeset, _} ->
         IO.inspect(step, label: "failed step")

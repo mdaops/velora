@@ -81,6 +81,15 @@ defmodule VeloraWeb.Router do
   end
 
   scope "/", VeloraWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    live_session :ensure_has_tenant,
+      on_mount: [{VeloraWeb.UserAuth, :ensure_has_tenant}] do
+      live "/dashboard", DashboardLive, :index
+    end
+  end
+
+  scope "/", VeloraWeb do
     pipe_through [:browser]
 
     delete "/users/log_out", UserSessionController, :delete

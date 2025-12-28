@@ -17,6 +17,8 @@ defmodule Velora.Tenancy do
     Velora.Tenancy.Tenant.changeset(tenant, attrs)
   end
 
+  def get(id), do: Repo.get(Tenant, id)
+
   @doc """
   Creates a tenant with an owner.
   """

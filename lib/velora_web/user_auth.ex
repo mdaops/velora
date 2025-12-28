@@ -32,15 +32,11 @@ defmodule VeloraWeb.UserAuth do
     user_return_to = get_session(conn, :user_return_to)
     has_membership = Velora.Tenancy.user_has_membership?(user.id)
 
-    Logger.info("has_membership: #{has_membership}")
-
     conn =
       conn
       |> renew_session()
       |> put_token_in_session(token)
       |> maybe_write_remember_me_cookie(token, params)
-
-    IO.inspect(has_membership)
 
     if !has_membership do
       Logger.info("redirecting to tenant onboarding")
@@ -106,8 +102,14 @@ defmodule VeloraWeb.UserAuth do
   """
   def fetch_current_user(conn, _opts) do
     {user_token, conn} = ensure_user_token(conn)
-    user = user_token && Accounts.get_user_by_session_token(user_token)
+    user = user_token && Accounts.get_user_by_session_token(user_token, preload: [:tenants])
     assign(conn, :current_user, user)
+  end
+
+  def fetch_tenant(conn, _opts) do
+    user = conn.assigns.current_user
+    tenant = Velora.Tenancy.list_tenants(user.id) |> List.first()
+    assign(conn, :current_tenant, tenant)
   end
 
   defp ensure_user_token(conn) do
@@ -185,6 +187,36 @@ defmodule VeloraWeb.UserAuth do
       {:halt, Phoenix.LiveView.redirect(socket, to: signed_in_path(socket))}
     else
       {:cont, socket}
+    end
+  end
+
+  def on_mount(:ensure_has_tenant, _params, session, socket) do
+    socket = mount_current_user(socket, session)
+    user = socket.assigns.current_user
+
+    IO.inspect("user #{inspect(user)}")
+
+    if user && Velora.Tenancy.user_has_membership?(user.id) do
+      membership = Velora.Tenancy.list_memberships_by_tenant(user.id) |> List.first()
+      IO.inspect("memberships #{inspect(membership)}")
+
+      socket =
+        socket
+        |> Phoenix.Component.assign_new(:tenant, fn ->
+          Velora.Tenancy.get(membership.tenant_id)
+        end)
+
+      {:cont, socket}
+    else
+      socket =
+        socket
+        |> Phoenix.LiveView.put_flash(
+          :error,
+          "Please create a tenant before continuing"
+        )
+        |> Phoenix.LiveView.redirect(to: ~p"/tenant/new")
+
+      {:halt, socket}
     end
   end
 

@@ -57,8 +57,14 @@ defmodule Velora.Accounts do
       iex> get_user!(456)
       ** (Ecto.NoResultsError)
 
+      iex> get_user!(123, preload: [:tenants])
+      %User{}
+
   """
-  def get_user!(id), do: Repo.get!(User, id)
+  def get_user!(id, opts \\ []) do
+    preload = Keyword.get(opts, :preload, [])
+    Repo.get!(User, id) |> Repo.preload(preload)
+  end
 
   ## User registration
 
@@ -227,11 +233,24 @@ defmodule Velora.Accounts do
   end
 
   @doc """
-  Gets the user with the given signed token.
+  Gets user with given signed token.
+
+  ## Examples
+
+      iex> get_user_by_session_token("validtoken")
+      %User{}
+      
+      iex> get_user_by_session_token("validtoken", preload: [:tenants])
+      %User{tenants: [...]}
+
   """
-  def get_user_by_session_token(token) do
+  def get_user_by_session_token(token, opts \\ []) do
+    preload = Keyword.get(opts, :preload, [])
     {:ok, query} = UserToken.verify_session_token_query(token)
-    Repo.one(query)
+
+    query
+    |> Repo.one()
+    |> Repo.preload(preload)
   end
 
   @doc """
