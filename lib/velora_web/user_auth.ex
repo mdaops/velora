@@ -197,13 +197,15 @@ defmodule VeloraWeb.UserAuth do
     IO.inspect("user #{inspect(user)}")
 
     if user && Velora.Tenancy.user_has_membership?(user.id) do
-      membership = Velora.Tenancy.list_memberships_by_tenant(user.id) |> List.first()
-      IO.inspect("memberships #{inspect(membership)}")
+      # membership = Velora.Tenancy.list_memberships_by_tenant(user.id) |> List.first()
+      # IO.inspect("memberships #{inspect(membership)}")
+
+      user_membership = user.memberships |> List.first()
 
       socket =
         socket
         |> Phoenix.Component.assign_new(:tenant, fn ->
-          Velora.Tenancy.get(membership.tenant_id)
+          Velora.Tenancy.get(user_membership.tenant_id)
         end)
 
       {:cont, socket}
@@ -212,7 +214,7 @@ defmodule VeloraWeb.UserAuth do
         socket
         |> Phoenix.LiveView.put_flash(
           :error,
-          "Please create a tenant before continuing"
+          "Please create a tenant before continuing."
         )
         |> Phoenix.LiveView.redirect(to: ~p"/tenant/new")
 
@@ -223,7 +225,7 @@ defmodule VeloraWeb.UserAuth do
   defp mount_current_user(socket, session) do
     Phoenix.Component.assign_new(socket, :current_user, fn ->
       if user_token = session["user_token"] do
-        Accounts.get_user_by_session_token(user_token)
+        Accounts.get_user_by_session_token(user_token, preload: [:memberships])
       end
     end)
   end
