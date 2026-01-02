@@ -39,3 +39,18 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
+// Handle GitHub connection window events from LiveView
+window.addEventListener("phx:open_github_window", (e) => {
+  const url = e.detail.url
+  const width = 600
+  const height = 700
+  const left = (window.innerWidth - width) / 2
+  const top = (window.innerHeight - height) / 2
+
+  window.open(
+    url,
+    "github_connect",
+    `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+  )
+})
+

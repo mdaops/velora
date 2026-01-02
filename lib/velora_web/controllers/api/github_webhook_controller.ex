@@ -3,6 +3,7 @@ defmodule VeloraWeb.API.GithubWebhook do
 
   def create(conn, data) do
     IO.inspect(data)
+    tenant_id = get_session(conn, :current_tenant)
 
     conn
     |> put_status(:no_content)

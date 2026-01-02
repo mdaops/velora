@@ -1,5 +1,6 @@
 defmodule VeloraWeb.TenantOnboardLive do
   use VeloraWeb, :live_view
+
   require Logger
 
   def render(assigns) do
@@ -29,8 +30,6 @@ defmodule VeloraWeb.TenantOnboardLive do
   end
 
   def mount(_params, _session, socket) do
-    # changeset = Velora.Tenancy.tenant_changeset(%Velora.Tenancy.Tenant{})
-
     socket =
       socket
       |> assign(:tenant_form, to_form(%{}, as: "tenant"))

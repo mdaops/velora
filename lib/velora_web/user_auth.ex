@@ -38,11 +38,13 @@ defmodule VeloraWeb.UserAuth do
       |> put_token_in_session(token)
       |> maybe_write_remember_me_cookie(token, params)
 
-    if !has_membership do
-      Logger.info("redirecting to tenant onboarding")
-      redirect(conn, to: ~p"/tenant/new")
-    else
-      redirect(conn, to: user_return_to || signed_in_path(conn))
+    case has_membership do
+      false ->
+        Logger.info("redirecting to tenant onboarding")
+        redirect(conn, to: ~p"/tenant/new")
+
+      true ->
+        redirect(conn, to: user_return_to || signed_in_path(conn))
     end
   end
 
@@ -106,9 +108,11 @@ defmodule VeloraWeb.UserAuth do
     assign(conn, :current_user, user)
   end
 
-  def fetch_tenant(conn, _opts) do
+  def fetch_current_tenant(conn, _opts) do
     user = conn.assigns.current_user
-    tenant = Velora.Tenancy.list_tenants(user.id) |> List.first()
+    IO.inspect("fetch_current_tenant user #{inspect(user)}")
+    membership = user.memberships |> List.first()
+    tenant = Velora.Tenancy.get(membership.tenant_id)
     assign(conn, :current_tenant, tenant)
   end
 
@@ -193,13 +197,11 @@ defmodule VeloraWeb.UserAuth do
   def on_mount(:ensure_has_tenant, _params, session, socket) do
     socket = mount_current_user(socket, session)
     user = socket.assigns.current_user
-
-    IO.inspect("user #{inspect(user)}")
-
+    
     if user && Velora.Tenancy.user_has_membership?(user.id) do
-      # membership = Velora.Tenancy.list_memberships_by_tenant(user.id) |> List.first()
-      # IO.inspect("memberships #{inspect(membership)}")
-
+      # NOTE: we're assuming there's only one membership per user. 
+      # This is a safe assumption for now, but we should probably
+      # revisit this in the future.
       user_membership = user.memberships |> List.first()
 
       socket =
@@ -220,6 +222,11 @@ defmodule VeloraWeb.UserAuth do
 
       {:halt, socket}
     end
+  end
+
+  defp put_current_tenant_in_session(conn, tenant_id) do
+    conn
+    |> put_session(:current_tenant, tenant_id)
   end
 
   defp mount_current_user(socket, session) do
@@ -273,5 +280,5 @@ defmodule VeloraWeb.UserAuth do
 
   defp maybe_store_return_to(conn), do: conn
 
-  defp signed_in_path(_conn), do: ~p"/"
+  defp signed_in_path(_conn), do: ~p"/dashboard"
 end

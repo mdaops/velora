@@ -4,6 +4,7 @@ defmodule Velora.Connections.VCS do
   @moduledoc false
 
   @primary_key {:id, :binary_id, autogenerate: true}
+  @foreign_key_type :binary_id
   schema "tenants_vcs_connection" do
     field :name, :string
     field :installation_id, :string
@@ -17,14 +18,22 @@ defmodule Velora.Connections.VCS do
 
   def register_changeset(connection, params) do
     connection
-    |> cast(params, [:name, :provider, :status, :tenant_id])
-    |> validate_required([:name, :provider, :status, :tenant_id])
+    |> cast(params, [:name, :provider, :tenant_id])
+    |> validate_required([:name, :provider, :tenant_id])
+    |> put_change(:status, :disconnected)
   end
 
-  def instantiate_connection_changeset(connection, params) do
+  def establish_changeset(connection, params) do
     connection
-    |> cast(params, [:installation_id, :tenant_id])
-    |> validate_required([:installation_id, :tenant_id])
+    |> cast(params, [:installation_id])
+    |> validate_required([:installation_id])
     |> put_change(:status, :connected)
+  end
+
+  def disconnect_changeset(connection, params) do
+    connection
+    |> cast(params, [:connection_id, :tenant_id])
+    |> validate_required([:connection_id, :tenant_id])
+    |> put_change(:status, :disconnected)
   end
 end

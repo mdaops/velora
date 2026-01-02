@@ -1,5 +1,6 @@
 defmodule VeloraWeb.GithubInstallController do
   use VeloraWeb, :controller
+  require Logger
 
   @app_slug "velora-platform"
 
@@ -16,16 +17,44 @@ defmodule VeloraWeb.GithubInstallController do
           "https://github.com/organizations/#{URI.encode_www_form(org)}/settings/apps/#{@app_slug}/installations/new"
       end
 
-    redirect(conn, external: url)
+    tenant_id = conn.assigns.current_tenant.id
+
+    case Velora.Connections.create_vcs_connection(%{
+           name: "GitHub",
+           tenant_id: tenant_id,
+           provider: :github
+         }) do
+      {:ok, connection} ->
+        put_session(conn, :pending_github_connection, connection.id)
+        redirect(conn, external: url)
+
+      {:error, reason} ->
+        Logger.info(tenant_id)
+        Logger.error("Failed to create connection: #{reason}")
+        conn
+        |> put_flash(:error, "Failed to create connection")
+        |> redirect(to: ~p"/dashboard")
+    end
   end
 
   def callback(conn, params) do
-    IO.inspect(params)
-    # TODO: retrieve tenant id from something like session
-    # look up tenant vcs connection and update status with installation id
-    # if successful, redirect to tenant page
     installation_id = params["installation_id"]
+    # tenant_id = get_session(conn, :current_tenant)
+    connection_id = get_session(conn, :pending_github_connection)
 
-    conn
+    attrs = %{
+      installation_id: installation_id
+    }
+
+    case Velora.Connections.establish_vcs_connection(connection_id, attrs) do
+      {:ok, _} ->
+        delete_session(conn, :pending_github_connection)
+        redirect(conn, to: ~p"/dashboard")
+
+      {:error, _} ->
+        conn
+        |> put_flash(:error, "Failed to establish connection")
+        |> redirect(to: ~p"/dashboard")
+    end
   end
 end
