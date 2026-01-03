@@ -10,6 +10,7 @@ defmodule Velora.Tenancy.Tenant do
     field :slug, :string
 
     has_many :memberships, Velora.Tenancy.Membership
+    has_many :vcs_connections, Velora.Connections.Vcs
 
     timestamps()
   end

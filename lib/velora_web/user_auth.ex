@@ -110,10 +110,25 @@ defmodule VeloraWeb.UserAuth do
 
   def fetch_current_tenant(conn, _opts) do
     user = conn.assigns.current_user
-    IO.inspect("fetch_current_tenant user #{inspect(user)}")
-    membership = user.memberships |> List.first()
-    tenant = Velora.Tenancy.get(membership.tenant_id)
-    assign(conn, :current_tenant, tenant)
+
+    case user do
+      %Velora.Accounts.User{} ->
+        IO.inspect("fetch_current_tenant user #{inspect(user)}")  
+        membership = user.memberships |> List.first()
+        if membership do
+          tenant = Velora.Tenancy.get(membership.tenant_id)
+          IO.inspect("setting tenant #{inspect(tenant)}")  
+          assign(conn, :current_tenant, tenant)
+        else
+          assign(conn, :current_tenant, nil)
+        end
+      nil ->
+        Logger.info("fetch_current_tenant: nil")
+        assign(conn, :current_tenant, nil)
+      _ ->
+        Logger.info("fetch_current_tenant: user #{inspect(user)}")
+        assign(conn, :current_tenant, nil)
+    end
   end
 
   defp ensure_user_token(conn) do

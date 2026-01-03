@@ -1,11 +1,11 @@
-defmodule Velora.Connections.VCS do
+defmodule Velora.Connections.Vcs do
   use Ecto.Schema
   import Ecto.Changeset
   @moduledoc false
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
-  schema "tenants_vcs_connection" do
+  schema "vcs_connections" do
     field :name, :string
     field :installation_id, :string
     field :provider, Ecto.Enum, values: [:github], default: :github

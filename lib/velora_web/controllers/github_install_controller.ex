@@ -17,6 +17,8 @@ defmodule VeloraWeb.GithubInstallController do
           "https://github.com/organizations/#{URI.encode_www_form(org)}/settings/apps/#{@app_slug}/installations/new"
       end
 
+    IO.inspect(conn.assigns)
+
     tenant_id = conn.assigns.current_tenant.id
 
     case Velora.Connections.create_vcs_connection(%{
@@ -25,12 +27,15 @@ defmodule VeloraWeb.GithubInstallController do
            provider: :github
          }) do
       {:ok, connection} ->
-        put_session(conn, :pending_github_connection, connection.id)
-        redirect(conn, external: url)
+        Logger.info("VCS connection created: #{connection.id}")
+
+        conn
+        |> put_session(:pending_github_connection, connection.id)
+        |> redirect(external: url)
 
       {:error, reason} ->
-        Logger.info(tenant_id)
-        Logger.error("Failed to create connection: #{reason}")
+        Logger.error("Failed to create VCS connection: #{inspect(reason)}")
+
         conn
         |> put_flash(:error, "Failed to create connection")
         |> redirect(to: ~p"/dashboard")
@@ -39,8 +44,11 @@ defmodule VeloraWeb.GithubInstallController do
 
   def callback(conn, params) do
     installation_id = params["installation_id"]
-    # tenant_id = get_session(conn, :current_tenant)
     connection_id = get_session(conn, :pending_github_connection)
+
+    Logger.info(
+      "GitHub callback: installation_id=#{installation_id}, connection_id=#{connection_id}"
+    )
 
     attrs = %{
       installation_id: installation_id
@@ -48,13 +56,24 @@ defmodule VeloraWeb.GithubInstallController do
 
     case Velora.Connections.establish_vcs_connection(connection_id, attrs) do
       {:ok, _} ->
-        delete_session(conn, :pending_github_connection)
-        redirect(conn, to: ~p"/dashboard")
+        Logger.info("VCS connection established")
 
-      {:error, _} ->
+        conn
+        |> delete_session(:pending_github_connection)
+        |> redirect(to: ~p"/dashboard")
+
+      {:error, reason} ->
+        Logger.error("Failed to establish VCS connection: #{inspect(reason)}")
         conn
         |> put_flash(:error, "Failed to establish connection")
         |> redirect(to: ~p"/dashboard")
     end
   end
+
+  defp build_github_url(nil), do: "https://github.com/apps/#{@app_slug}/installations/new"
+  defp build_github_url(""), do: "https://github.com/apps/#{@app_slug}/installations/new"
+
+  defp build_github_url(org),
+    do:
+      "https://github.com/organizations/#{URI.encode_www_form(org)}/settings/apps/#{@app_slug}/installations/new"
 end

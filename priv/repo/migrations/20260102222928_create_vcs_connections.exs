@@ -2,7 +2,8 @@ defmodule Velora.Repo.Migrations.CreateVcsConnections do
   use Ecto.Migration
 
   def change do
-    create table(:tenants_vcs_connections) do
+    create table(:vcs_connections, primary_key: false) do
+      add :id, :binary_id, primary_key: true
       add :name, :string
       add :installation_id, :string
       add :provider, :string
@@ -13,6 +14,8 @@ defmodule Velora.Repo.Migrations.CreateVcsConnections do
       timestamps()
     end
 
-    add unique_index(:tenants_vcs_connections, [:tenant_id, :provider])
+    create index(:vcs_connections, [:installation_id])
+    create index(:vcs_connections, [:tenant_id])
+    create unique_index(:vcs_connections, [:tenant_id, :provider])
   end
 end
